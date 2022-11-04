@@ -19,10 +19,11 @@ class skipList {
             string label; // hash value for every node
             Node *rgt; // rgt points to the next data. This varies depending on the level
             Node *dwn; // dwn points to the nodes next level down in the column.
-
+            Node *prev; // only used during insertion to set new hash values
             Node(int value, int lvl) {
                 rgt = NULL;
                 dwn = NULL;
+                prev = NULL;
                 rank = 1;
                 data = value;
                 level = lvl;
@@ -116,6 +117,7 @@ class skipList {
             int temp = N->level;    // Holds the highest level for new node
             int rank = root->rank;  // Used to find block_i
             int cnt = 0;            // used to adjust ranks after insertion
+            pointer *path;
 
             printf("***** Insert New Element: %d *****\n", N->data);
             while((C || N)) {
@@ -129,17 +131,22 @@ class skipList {
                         if(N->rgt != NULL)
                             N->rank += N->rgt->rank; // Increment rank by value of right pointers rank
                         rank -= C->rgt->rank;
+            if(N->dwn) { N->dwn->prev = N; }
+            if(C->dwn) { C->dwn->prev = C; }
                         N = N->dwn; // move to N's next level down
                         C = C->dwn; // move to C's next node down
                     }
                     else if(C->rgt && (rank - C->rgt->rank) < block_i) {
                         cnt += (C->rank - C->rgt->rank);
                         ++C->rank;
+            if(C->rgt) { C->rgt->prev = C; }
                         C = C->rgt;
                     }
                     else {
                         C->rgt = N;
                         ++C->rank;
+            if(N->dwn) { N->dwn->prev = N; }
+            if(C->dwn) { C->dwn->prev = C; }
                         N = N->dwn; // move to N's next level down
                         C = C->dwn; // move to next node down
                     }
@@ -148,15 +155,18 @@ class skipList {
                     if(C->rgt && (rank - C->rgt->rank) >= block_i) {
                         rank -= C->rgt->rank;
                         ++C->rank;
+            if(C->dwn) { C->dwn->prev = C; }
                         C = C->dwn;
                     }
                     else if(C->rgt && (rank - C->rgt->rank) < block_i && (rank - C->rgt->rank) > 0) {
                         cnt += (C->rank - C->rgt->rank);
                         ++C->rank;
+            if(C->rgt) { C->rgt->prev = C; }
                         C = C->rgt;
                     }
                     else {
                         ++C->rank;
+            if(C->dwn) { C->dwn->prev = C; }
                         C = C->dwn;
                     }
                 }
@@ -175,7 +185,8 @@ class skipList {
                         }
                         incr = NULL;
                         delete incr;
-
+            if(N->dwn) { N->dwn->prev = N; }
+            if(C->dwn) { C->dwn->prev = C; }
                         N = N->dwn; // move to N's next level down
                         C = C->dwn; // move to C's next node down
                     }
@@ -183,17 +194,67 @@ class skipList {
                         if(C->rgt && (rank - C->rgt->rank + cnt) < block_i) {
                             C->rank -= cnt;
                         }
-                        C = C->rgt;
+            if(C->rgt) { C->rgt->prev = C; }
+                        C = C->rgt; // move to C's next node right
                     }
                     else {
                         if(C->rgt && (rank - C->rgt->rank + cnt) < block_i) {
                             C->rank -= cnt;
                         }
-                        C = C->dwn;
+            if(N->dwn) { N->dwn->prev = N; }
+            if(C->dwn) { C->dwn->prev = C; }
                         N = N->dwn; // move to N's next level down
+                        C = C->dwn; // move to C's next node down
                     }
                 }
             }
+            printf("\npress ENTER to continue\n");
+            cin.get();
+            while(N) {
+                string x, fd, fr;
+                int l, r;
+                if(N->level > 0) {
+                    if(!N->rgt) { fr = "0"; }
+                    else { fr = N->rgt->label; }
+                    if(!N->dwn) { fd = "0"; }
+                    else { fd = N->dwn->label; }
+                    N->label = hash(N->level, N->rank, fd, fr);
+                }
+                else {
+                    if(!N->rgt) { fr = "0"; }
+                    else { fr = N->rgt->label; }
+                    N->label = hash(N->level, N->rank, block_i, fr);
+                }
+                temp = N->prev;
+                N->prev = NULL;
+                N = temp;
+            }
+            N = NULL;
+            printf("\npress ENTER to continue\n");
+            cin.get();
+            while(C) {
+                string x, fd, fr;
+                int l, r;
+                if(C->level > 0) {
+                    if(!C->rgt) { fr = "0"; }
+                    else { fr = C->rgt->label; }
+                    if(!C->dwn) { fd = "0"; }
+                    else { fd = C->dwn->label; }
+                    C->label = hash(C->level, C->rank, fd, fr);
+                }
+                else {
+                    if(!C->rgt) { fr = "0"; }
+                    else { fr = C->rgt->label; }
+                    C->label = hash(C->level, C->rank, C->label, fr);
+                }
+                temp = C->prev;
+                C->prev = NULL;
+                C = temp;
+            }
+            C = NULL;
+
+
+
             if(N)
                 printf("true\n");
             // printf("\npress ENTER to continue\n");
@@ -448,12 +509,16 @@ bool verify_block_i_integrity(skipList skip_list, string client_Mc, int block_i)
 }
 
 //******************** Get Hash Function ***********************
+int letitgo = 1;
 string hash(int lvl, int rank, string str1 = "0", string str2 = "0") {
     SHA1 sha1;
     stringstream ss1,ss2;
     ss1 << lvl;
     ss2 << rank;
-    return sha1(sha1(str2) + sha1(ss1.str()) + sha1(ss2.str()) + sha1(str1));
+    string here = sha1(sha1(str2) + sha1(ss1.str()) + sha1(ss2.str()) + sha1(str1));
+    cout << letitgo << ": " << here << endl;
+    
+    return here;
 }
 
 
